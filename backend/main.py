@@ -1,22 +1,45 @@
+"""
+Main application entry point with route registration.
+"""
 from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from routes.clips import router as clips_router
+from routes.playback import router as playback_router
+from config import get_settings
 
-app = FastAPI()
+# Initialize app
+app = FastAPI(
+    title="echo",
+    description="delivering information back to you.",
+    version="0.1.0"
+)
 
-class Item(BaseModel):
-    name: str
+# CORS middleware for extension and web app
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# root endpoints
+# Register routes
+app.include_router(clips_router, prefix="/api/v1")
+app.include_router(playback_router, prefix="/api/v1")
+
+#
 @app.get("/")
-def read_root():
-    return {"message": "Hello, World!"}
+def root():
+    """Health check endpoint."""
+    return {"status": "ok", "service": "echo-api"}
 
-# retrieve item by id
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
 
-# create item
-@app.post("/items/")
-def create_item(item: Item):
-    return item
+@app.get("/health")
+def health_check():
+    """Detailed health check for monitoring."""
+    settings = get_settings()
+    return {
+        "status": "healthy",
+        "supabase_configured": bool(settings.SUPABASE_URL),
+        "debug": settings.DEBUG
+    }
