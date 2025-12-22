@@ -1,6 +1,6 @@
 {
   "name": "extension",
-  "displayName": "Extension",
+  "displayName": "Echo",
   "version": "0.0.1",
   "description": "explains anything you want to you.",
   "author": "dc",
@@ -10,6 +10,7 @@
     "package": "plasmo package"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
     "plasmo": "0.90.5",
     "react": "18.2.0",
     "react-dom": "18.2.0"
@@ -24,8 +25,24 @@
     "typescript": "5.3.3"
   },
   "manifest": {
+    "permissions": [
+      "tabs",
+      "storage",
+      "sidePanel"
+    ],
     "host_permissions": [
-      "https://*/*"
-    ]
+      "https://*/*",
+      "http://localhost/*"
+    ],
+    "externally_connectable": {
+      "matches": [
+        "http://localhost:3000/*",
+        "https://*.vercel.app/*"
+      ]
+    },
+    "action": {},
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    }
   }
 }

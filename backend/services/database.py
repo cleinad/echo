@@ -1,5 +1,5 @@
 """
-Supabase client initialization.
+Supabase client initialization. Singleton pattern.
 """
 from functools import lru_cache
 from supabase import create_client, Client
