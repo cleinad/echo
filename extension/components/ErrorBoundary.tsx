@@ -1,5 +1,6 @@
 import { Component } from "react";
 import type { ReactNode } from "react";
+import "../style.css";
 
 interface Props {
   children: ReactNode;
@@ -9,16 +10,6 @@ interface State {
   hasError: boolean;
   error: Error | null;
 }
-
-const styles = {
-  colors: {
-    bg: "#f4f4f5", // zinc-50
-    text: "#18181b", // zinc-900
-    textMuted: "#71717a", // zinc-500
-    buttonActive: "#18181b", // zinc-900
-    errorText: "#dc2626",
-  },
-};
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -37,40 +28,12 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div
-          style={{
-            width: "100%",
-            minHeight: "100vh",
-            backgroundColor: styles.colors.bg,
-            fontFamily:
-              '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            padding: "24px",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ maxWidth: "400px" }}>
-            <h2
-              style={{
-                color: styles.colors.errorText,
-                marginBottom: "16px",
-                fontSize: "24px",
-                fontWeight: 600,
-                letterSpacing: "-0.025em",
-              }}
-            >
+        <div className="w-full min-h-screen bg-zinc-100 font-sans flex items-center justify-start p-6 box-border">
+          <div className="max-w-[400px]">
+            <h2 className="text-red-600 mb-4 text-2xl font-semibold tracking-tight">
               Something went wrong
             </h2>
-            <p
-              style={{
-                color: styles.colors.textMuted,
-                fontSize: "14px",
-                marginBottom: "24px",
-                lineHeight: 1.5,
-              }}
-            >
+            <p className="text-zinc-500 text-sm mb-6 leading-relaxed">
               {this.state.error?.message || "An unexpected error occurred"}
             </p>
             <button
@@ -78,19 +41,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 this.setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "9999px",
-                backgroundColor: styles.colors.buttonActive,
-                padding: "12px 24px",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#fff",
-                border: "none",
-                cursor: "pointer",
-              }}
+              className="inline-flex items-center justify-center rounded-full bg-zinc-900 px-6 py-3 text-sm font-medium text-white border-none cursor-pointer"
             >
               Reload Extension
             </button>
