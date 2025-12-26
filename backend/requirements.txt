@@ -18,6 +18,10 @@ langgraph==1.0.5
 openai==2.11.0
 tiktoken==0.12.0
 
+# TTS
+elevenlabs==2.27.0
+mutagen>=1.47.0  # For audio metadata/duration
+
 # Web Scraping (for future URL scraping)
 # trafilatura>=1.6.0
 # beautifulsoup4>=4.12.0

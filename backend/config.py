@@ -17,6 +17,7 @@ class Settings:
     
     # LLM & TTS settings
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
     
     # App settings
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"

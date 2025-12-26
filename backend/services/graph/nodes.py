@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from config import get_settings
+from services.llm_service import get_llm
 
 
 def process_note_node(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -108,11 +109,7 @@ Write ONLY the script - no meta-commentary, stage directions, or labels."""
     ])
     
     # Initialize LLM
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",  # Fast and cost-effective for script generation
-        temperature=0.7,  # Creative but consistent
-        api_key=settings.OPENAI_API_KEY
-    )
+    llm = get_llm(model="gpt-4o-mini", temperature=0.7)
     
     # Create chain
     chain = prompt | llm | StrOutputParser()
@@ -140,16 +137,31 @@ def text_to_speech_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert script to audio using TTS API.
     
-    TODO: Implement TTS conversion
-    - Call TTS API (OpenAI TTS, ElevenLabs, etc.)
-    - Generate high-quality MP3
-    - Calculate actual audio duration
-    - Return audio bytes
+    Uses ElevenLabs TTS to generate high-quality audio from the script.
     """
     print(f"[NODE] Converting script to audio for clip {state['clip_id']}")
-    # Placeholder
-    state["audio_data"] = b"TODO: Implement TTS"
-    state["actual_duration"] = 0
+    
+    from services.tts_service import text_to_speech
+    
+    # Get the script from state
+    script = state.get("script", "")
+    if not script:
+        state["error"] = "No script available for TTS conversion"
+        return state
+    
+    # Convert to audio
+    result = text_to_speech(script)
+    
+    # Check for errors
+    if result.get("error"):
+        state["error"] = result["error"]
+        return state
+    
+    # Update state with audio data
+    state["audio_data"] = result["audio_data"]
+    state["actual_duration"] = result["duration"]
+    
+    print(f"[NODE] Audio generated: {result['duration']:.2f} seconds")
     return state
 
 

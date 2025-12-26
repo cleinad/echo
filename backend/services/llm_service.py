@@ -13,7 +13,7 @@ TODO: Consider adding
 from langchain_openai import ChatOpenAI
 from config import get_settings
 
-
+# those are the default values for the LLM, can be overridden if needed
 def get_llm(model: str = "gpt-4o-mini", temperature: float = 0.7) -> ChatOpenAI:
     """
     Get configured LLM instance.
