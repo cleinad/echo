@@ -18,11 +18,13 @@ class ClipResponse(BaseModel):
     page_title: Optional[str] = None
     target_duration: int
     status: Literal["pending", "processing", "completed", "failed"]
+    generated_script: Optional[str] = None
     audio_url: Optional[str] = None
     actual_duration: Optional[int] = None  # seconds
     error_message: Optional[str] = None
     is_favorited: bool = False
     created_at: datetime
+    started_processing_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
 

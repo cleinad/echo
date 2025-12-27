@@ -19,11 +19,13 @@ export interface ClipResponse {
   page_title: string | null;
   target_duration: number;
   status: "pending" | "processing" | "completed" | "failed";
+  generated_script: string | null;
   audio_url: string | null;
   actual_duration: number | null;
   error_message: string | null;
   is_favorited: boolean;
   created_at: string;
+  started_processing_at: string | null;
   completed_at: string | null;
 }
 

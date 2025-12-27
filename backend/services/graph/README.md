@@ -35,12 +35,12 @@ END
 - Graph structure with conditional routing
 - `process_note_node` - passes note text through
 - `generate_script_node` - LLM script generation with OpenAI
+- `text_to_speech_node` - ElevenLabs TTS conversion
+- `save_audio_node` - upload to Supabase storage
+- `update_clip_status_node` - update database with results
 
 ### 🚧 TODO
 - `scrape_url_node` - implement URL scraping with trafilatura
-- `text_to_speech_node` - implement TTS with OpenAI TTS API
-- `save_audio_node` - upload to Supabase storage
-- `update_clip_status_node` - update database with results
 
 ## Testing Script Generation
 

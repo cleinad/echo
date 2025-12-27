@@ -7,6 +7,7 @@ It's called by the background worker and handles:
 - Invoking the processing graph
 - Error handling and status updates
 """
+from datetime import datetime
 from services.graph.graph import processing_graph
 from services.graph.state import ProcessingState
 from services.database import get_supabase_client
@@ -33,8 +34,11 @@ def process_clip(clip_id: str) -> dict:
         
         clip = result.data
         
-        # Update status to processing
-        supabase.table("audio_clips").update({"status": "processing"}).eq("id", clip_id).execute()
+        # Update status to processing and set started_processing_at timestamp
+        supabase.table("audio_clips").update({
+            "status": "processing",
+            "started_processing_at": datetime.utcnow().isoformat()
+        }).eq("id", clip_id).execute()
         
         # Create initial state
         initial_state = ProcessingState(

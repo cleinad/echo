@@ -69,4 +69,7 @@ async def get_current_user(
         email=payload.get("email")
     )
 
-
+# ensure the user is the owner of the resource
+def ensure_ownership(user_id: str, resource_user_id: str):
+    if user_id != resource_user_id:
+        raise HTTPException(403, "Access denied")

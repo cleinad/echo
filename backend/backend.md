@@ -6,8 +6,18 @@ source venv/bin/activate  # (Mac/Linux)
 
 start the server:
 ```bash
+cd backend
 uvicorn main:app --reload
 ```
+
+**IMPORTANT**: Also start the background worker (in a separate terminal):
+```bash
+cd backend
+source venv/bin/activate
+python worker.py
+```
+The worker polls for pending clips and processes them. Without it, clips will stay stuck in "pending" status.
+
 viewables:
 - Swagger UI: http://localhost:8000/docs
 - Alternative ReDoc: http://localhost:8000/redoc

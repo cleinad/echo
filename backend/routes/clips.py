@@ -160,8 +160,11 @@ async def delete_clip(
     # Delete from storage if audio exists
     if clip.data.get("audio_url"):
         try:
-            supabase.storage.from_("audio-files").remove([clip.data["audio_url"]])
-        except Exception:
+            # Extract filename from the clip_id (format: {clip_id}.mp3)
+            filename = f"{clip_id}.mp3"
+            supabase.storage.from_("audio-files").remove([filename])
+        except Exception as e:
+            print(f"[WARNING] Failed to delete audio file: {e}")
             pass  # Non-critical, continue with DB deletion
     
     # Delete from database (cascades to playback_progress via FK)

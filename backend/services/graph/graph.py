@@ -6,7 +6,7 @@ Defines the structure of the processing graph including:
 - Conditional routing (note vs URL)
 - Error handling paths
 """
-from typing import Literal
+from typing import Literal, TypedDict, Optional
 from langgraph.graph import StateGraph, END
 from .state import ProcessingState
 from .nodes import (
@@ -17,6 +17,23 @@ from .nodes import (
     save_audio_node,
     update_clip_status_node
 )
+
+
+class GraphState(TypedDict, total=False):
+    """Dict-based state schema for the graph."""
+    clip_id: str
+    input_type: str
+    input_content: str
+    target_duration: int
+    context_instruction: Optional[str]
+    extracted_content: Optional[str]
+    page_title: Optional[str]
+    script: Optional[str]
+    audio_data: Optional[bytes]
+    audio_filename: Optional[str]
+    audio_url: Optional[str]
+    actual_duration: Optional[float]
+    error: Optional[str]
 
 
 def route_input(state: dict) -> Literal["process_note", "scrape_url"]:
@@ -38,8 +55,8 @@ def build_processing_graph():
         START → router → [process_note OR scrape_url] → generate_script
         → text_to_speech → save_audio → update_status → END
     """
-    # Initialize graph with state schema
-    workflow = StateGraph(ProcessingState)
+    # Initialize graph with dict-based state schema
+    workflow = StateGraph(GraphState)
     
     # Add nodes
     workflow.add_node("process_note", process_note_node)

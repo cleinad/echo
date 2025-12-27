@@ -169,16 +169,61 @@ def save_audio_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Upload audio to Supabase storage.
     
-    TODO: Implement storage upload
-    - Upload audio_data to Supabase storage bucket
-    - Generate filename (e.g., {clip_id}.mp3)
-    - Get public URL
-    - Return URL and filename
+    Uploads the generated MP3 audio to Supabase storage bucket
+    and stores the private URL in state.
     """
     print(f"[NODE] Saving audio for clip {state['clip_id']}")
-    # Placeholder
-    state["audio_filename"] = f"{state['clip_id']}.mp3"
-    state["audio_url"] = "TODO: Implement storage"
+    
+    from services.database import get_supabase_client
+    
+    # Check if we have audio data
+    audio_data = state.get("audio_data")
+    if not audio_data:
+        state["error"] = "No audio data available to save"
+        return state
+    
+    try:
+        supabase = get_supabase_client()
+        
+        # Generate filename
+        filename = f"{state['clip_id']}.mp3"
+        
+        # Upload to Supabase storage
+        print(f"[NODE] Uploading {len(audio_data)} bytes to storage as {filename}")
+        
+        result = supabase.storage.from_("audio-files").upload(
+            path=filename,
+            file=audio_data,
+            file_options={
+                "content-type": "audio/mpeg",
+                "upsert": "true"  # Overwrite if exists
+            }
+        )
+        
+        # Generate signed URL (expires in 1 year for long-term access)
+        # For private buckets, we need signed URLs that include authentication
+        signed_url_response = supabase.storage.from_("audio-files").create_signed_url(
+            filename, 
+            expires_in=31536000  # 1 year in seconds
+        )
+        
+        # Extract the signed URL from the response
+        if isinstance(signed_url_response, dict) and "signedURL" in signed_url_response:
+            audio_url = signed_url_response["signedURL"]
+        else:
+            audio_url = signed_url_response
+        
+        print(f"[NODE] Audio uploaded successfully: {audio_url}")
+        
+        # Update state
+        state["audio_filename"] = filename
+        state["audio_url"] = audio_url
+        
+    except Exception as e:
+        error_msg = f"Failed to save audio: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        state["error"] = error_msg
+    
     return state
 
 
@@ -186,14 +231,46 @@ def update_clip_status_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Update database with completed clip information.
     
-    TODO: Implement database update
-    - Update audio_clips table
-    - Set status to "completed"
-    - Set audio_url, actual_duration, page_title
-    - Set completed_at timestamp
+    Updates the audio_clips table with the final results:
+    - Sets status to "completed"
+    - Stores audio_url and actual_duration
+    - Sets page_title (if available from URL scraping)
+    - Records completed_at timestamp
     """
     print(f"[NODE] Updating clip status for {state['clip_id']}")
-    # Placeholder - will implement with Supabase client
+    
+    from services.database import get_supabase_client
+    from datetime import datetime
+    
+    try:
+        supabase = get_supabase_client()
+        
+        # Prepare update data
+        update_data = {
+            "status": "completed",
+            "generated_script": state.get("script"),  # Save the generated script
+            "audio_url": state.get("audio_url"),
+            "actual_duration": int(state.get("actual_duration", 0)) if state.get("actual_duration") else None,
+            "completed_at": datetime.utcnow().isoformat()
+        }
+        
+        # Add page_title if available (for URL inputs)
+        if state.get("page_title"):
+            update_data["page_title"] = state["page_title"]
+        
+        # Update the database
+        result = supabase.table("audio_clips").update(update_data).eq("id", state["clip_id"]).execute()
+        
+        if not result.data:
+            print(f"[WARNING] Database update returned no data for clip {state['clip_id']}")
+        else:
+            print(f"[NODE] Clip {state['clip_id']} marked as completed")
+        
+    except Exception as e:
+        error_msg = f"Failed to update clip status: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        state["error"] = error_msg
+    
     return state
 
 
