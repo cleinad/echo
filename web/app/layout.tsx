@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { AudioProvider } from "@/lib/audio-context";
 import { SyncToExtension } from "@/components/SyncToExtension";
 
 const geistSans = Geist({
@@ -30,8 +31,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <SyncToExtension />
-          {children}
+          <AudioProvider>
+            <SyncToExtension />
+            {children}
+          </AudioProvider>
         </AuthProvider>
       </body>
     </html>

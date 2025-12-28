@@ -32,13 +32,28 @@ async def create_clip(
         "status": "pending"
     }).execute()
     
-    if not result.data:
+    if not result or not result.data:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create clip"
         )
     
-    return ClipResponse(**result.data[0])
+    new_clip = result.data[0]
+    
+    # Initialize playback progress to 0 for the new clip
+    # This ensures the frontend sees a 0% progress bar instead of null
+    try:
+        supabase.table("playback_progress").insert({
+            "user_id": user.id,
+            "clip_id": new_clip["id"],
+            "position_seconds": 0,
+            "has_completed": False
+        }).execute()
+    except Exception as e:
+        # Log error but don't fail clip creation if progress initialization fails
+        print(f"[ERROR] Failed to initialize playback progress for clip {new_clip['id']}: {e}")
+    
+    return ClipResponse(**new_clip)
 
 
 @router.get("", response_model=ClipsListResponse)

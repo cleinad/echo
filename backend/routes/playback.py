@@ -34,22 +34,26 @@ async def get_progress(
         )
     
     # Get progress (may not exist yet)
-    result = supabase.table("playback_progress")\
-        .select("*")\
-        .eq("clip_id", clip_id)\
-        .eq("user_id", user.id)\
-        .maybe_single()\
-        .execute()
+    try:
+        result = supabase.table("playback_progress")\
+            .select("*")\
+            .eq("clip_id", clip_id)\
+            .eq("user_id", user.id)\
+            .maybe_single()\
+            .execute()
+        
+        if result and result.data:
+            return PlaybackProgressResponse(
+                clip_id=clip_id,
+                position_seconds=result.data["position_seconds"],
+                has_completed=result.data["has_completed"],
+                last_played_at=result.data["last_played_at"]
+            )
+    except Exception as e:
+        # Log error and return defaults if progress can't be fetched
+        print(f"[ERROR] Failed to fetch playback progress: {e}")
     
-    if result.data:
-        return PlaybackProgressResponse(
-            clip_id=clip_id,
-            position_seconds=result.data["position_seconds"],
-            has_completed=result.data["has_completed"],
-            last_played_at=result.data["last_played_at"]
-        )
-    
-    # No progress yet, return defaults
+    # No progress yet or error occurred, return defaults
     return PlaybackProgressResponse(clip_id=clip_id)
 
 
@@ -88,6 +92,12 @@ async def update_progress(
             "has_completed": request.has_completed
         }, on_conflict="user_id,clip_id")\
         .execute()
+    
+    if not result or not result.data:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update playback progress"
+        )
     
     return PlaybackProgressResponse(
         clip_id=clip_id,

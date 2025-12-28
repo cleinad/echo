@@ -55,7 +55,7 @@ export function SyncToExtension() {
         },
         () => {
           // Silently handle errors (extension might not be installed)
-          if (window.chrome.runtime?.lastError) {
+          if (window.chrome?.runtime?.lastError) {
             // Extension not available - this is OK
           }
         }
