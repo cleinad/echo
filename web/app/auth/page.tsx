@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
@@ -12,8 +12,15 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  // Redirect to home if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/");
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +48,20 @@ export default function AuthPage() {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking auth status
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="text-zinc-600 dark:text-zinc-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render the form if user is logged in (will redirect)
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 font-sans dark:bg-black">
