@@ -6,6 +6,8 @@ import { createClip } from "./lib/api";
 import type { ClipResponse } from "./lib/api";
 import "./style.css";
 
+const WEB_APP_URL = process.env.PLASMO_PUBLIC_WEB_APP_URL || "http://localhost:3000";
+
 type InputType = "url" | "note";
 type Duration = 2 | 5 | 10;
 
@@ -20,6 +22,11 @@ function ClipForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<ClipResponse | null>(null);
+
+  // Open library in a new tab
+  const handleOpenLibrary = () => {
+    chrome.tabs.create({ url: WEB_APP_URL });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +102,48 @@ function ClipForm() {
               Sign out
             </button>
           </div>
+        </div>
+
+        {/* Library Button */}
+        <div className="mb-6">
+          <button
+            onClick={handleOpenLibrary}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-zinc-200 hover:bg-zinc-300 text-zinc-900 px-4 py-3 text-sm font-medium border-none cursor-pointer transition-all"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Open Library</span>
+            <svg
+              className="w-4 h-4 ml-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Form */}
