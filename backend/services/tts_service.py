@@ -8,8 +8,10 @@ from elevenlabs.client import ElevenLabs
 from mutagen.mp3 import MP3
 from config import get_settings
 
-
-def text_to_speech(script: str, voice: str = "JBFqnCBsd6RMkjVDRZzb") -> dict:
+# voice of David M336tBVZHWWiWb4R54ui
+# John Doe Gentle iLzHtPh0bW6RGWRG0Xo5
+# William - fjnwTZkKtQOJaYzGLa6n
+def text_to_speech(script: str, voice: str = "iLzHtPh0bW6RGWRG0Xo5") -> dict:
     """
     Convert text script to audio using ElevenLabs.
     

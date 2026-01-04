@@ -9,7 +9,6 @@ Each node is a function that:
 Nodes should be pure functions focused on a single responsibility.
 """
 from typing import Dict, Any
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from config import get_settings
@@ -55,30 +54,33 @@ def generate_script_node(state: Dict[str, Any]) -> Dict[str, Any]:
     - Conversational and engaging
     - Highly credible and informative
     - Appropriate length for target duration
+    - Direct and to the point, do not be generic or repetitive
     """
     print(f"[NODE] Generating script for clip {state['clip_id']}")
     
     settings = get_settings()
     
     # Calculate target word count based on duration
-    # Average speaking rate: ~150 words per minute for podcast-style content
+    # Average speaking rate: ~150 words per minute for
     target_duration_minutes = state["target_duration"]
     target_word_count = target_duration_minutes * 150
     
     # Build the prompt
-    system_prompt = """You are an expert podcast script writer. Your job is to transform written content into engaging spoken-word scripts.
+    system_prompt = """You are an expert at every topic. Your job is to transform written content into engaging spoken-word scripts.
 
 Key requirements:
 - Write for EARS, not eyes - no bullet points, lists, or visual formatting
+- Be direct and answer directly, do not have entire sentences of fluff or padding, get to the point
 - Use a conversational, natural speaking style
 - Be informative and credible - speak with authority
 - Use smooth transitions between ideas
 - Include natural pauses and breathing room in the narrative
 - Make complex topics accessible without dumbing them down
+- Provide concise and formal definitions where appropriate, you can explain further if necessary
 
-Your scripts should sound like a knowledgeable friend explaining something interesting over coffee."""
+Your scripts should sound like an engaging expert explaining something"""
 
-    user_prompt = """Create a podcast-style audio script based on the following content.
+    user_prompt = """Create an audio script based on the following content as if you are an expert on the topic.
 
 TARGET DURATION: {target_duration} minutes (approximately {target_word_count} words)
 {context_section}
@@ -86,14 +88,18 @@ TARGET DURATION: {target_duration} minutes (approximately {target_word_count} wo
 CONTENT TO TRANSFORM:
 {content}
 
+CRITICAL: You MUST base your script on the content provided above. Do not generate content about unrelated topics. If the content is a question, answer that question. If the content is a topic, explain that topic.
+
 INSTRUCTIONS:
-1. Craft a natural, conversational script that flows smoothly when read aloud
+1. Craft a natural, conversational script that flows smoothly when read aloud to answer a question or provide information on a topic directly
 2. Target approximately {target_word_count} words (for {target_duration} minutes of audio)
-3. Open with a brief hook to engage the listener
-4. Present information in a logical, easy-to-follow narrative
+3. Open with a MAX one sentence hook about the topic to engage the listener, or get to the point, DO NOT BE GENERIC OR REPETITIVE
+4. Present information in a logical, direct and engaging narrative
 5. Use natural speech patterns - contractions, rhetorical questions, etc.
-6. Close with a satisfying conclusion or key takeaway
+6. Close with a key takeaway
 7. NO bullet points, lists, or "wall of text" - just natural spoken narrative
+8. Unless specifically asked, do not oversimplify the topic or dumb down the content
+9. Provide concise and formal definitions where appropriate, you can explain further if necessary
 
 Write ONLY the script - no meta-commentary, stage directions, or labels."""
 
@@ -108,8 +114,8 @@ Write ONLY the script - no meta-commentary, stage directions, or labels."""
         ("human", user_prompt)
     ])
     
-    # Initialize LLM
-    llm = get_llm(model="gpt-4o-mini", temperature=0.7)
+    # Initialize LLM with default settings
+    llm = get_llm(temperature=0.7)
     
     # Create chain
     chain = prompt | llm | StrOutputParser()

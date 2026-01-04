@@ -17,7 +17,12 @@ class Settings:
     
     # LLM & TTS settings
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
     ELEVENLABS_API_KEY: str = os.getenv("ELEVENLABS_API_KEY", "")
+    
+    # Provider settings: "openai" or "google"
+    DEFAULT_LLM_PROVIDER: str = os.getenv("DEFAULT_LLM_PROVIDER", "openai")
+    DEFAULT_LLM_MODEL: str = os.getenv("DEFAULT_LLM_MODEL", "gpt-4o-mini")
     
     # App settings
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
