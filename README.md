@@ -94,6 +94,11 @@ npm install
 
 ## Running the Application
 
+One command to start all servers:
+```bash
+bash scripts/dev.sh
+```
+
 ### Backend API Server
 
 ```bash
