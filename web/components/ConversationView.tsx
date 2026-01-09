@@ -1,0 +1,207 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { ConversationMessageResponse } from "@/lib/api";
+import { MessageBubble } from "@/components/MessageBubble";
+
+interface ConversationViewProps {
+  messages: ConversationMessageResponse[];
+  loading: boolean;
+  isSending: boolean;
+  error: string | null;
+  hasConversation: boolean;
+  onSendMessage: (content: string) => void;
+  onNewConversation: () => void;
+  onDismissError: () => void;
+}
+
+// Main conversation view component
+// Displays messages and input field for sending new messages
+export function ConversationView({
+  messages,
+  loading,
+  isSending,
+  error,
+  hasConversation,
+  onSendMessage,
+  onNewConversation,
+  onDismissError,
+}: ConversationViewProps) {
+  const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Focus input when conversation is selected
+  useEffect(() => {
+    if (hasConversation && !loading) {
+      inputRef.current?.focus();
+    }
+  }, [hasConversation, loading]);
+
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputValue.trim() && !isSending) {
+      onSendMessage(inputValue.trim());
+      setInputValue("");
+    }
+  };
+
+  // Handle Enter key to submit (Shift+Enter for new line)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  // Empty state - no conversation selected
+  if (!hasConversation) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center p-8">
+        <div className="text-center">
+          <h2 className="mb-2 text-xl font-medium text-zinc-900 dark:text-zinc-100">
+            Welcome to Conversations
+          </h2>
+          <p className="mb-6 text-zinc-500 dark:text-zinc-400">
+            Start a new conversation or select one from the sidebar.
+          </p>
+          <button
+            onClick={onNewConversation}
+            className="inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            New Conversation
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 flex-col">
+      {/* Error toast */}
+      {error && (
+        <div className="mx-4 mt-4 flex items-center justify-between rounded-lg bg-red-100 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
+          <span>{error}</span>
+          <button
+            onClick={onDismissError}
+            className="ml-4 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-6">
+        {loading ? (
+          <div className="flex items-center justify-center py-8 text-zinc-500">
+            Loading messages...
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex items-center justify-center py-8 text-zinc-500">
+            No messages yet. Say something!
+          </div>
+        ) : (
+          <div className="mx-auto max-w-2xl space-y-4">
+            {messages.map((message) => (
+              <MessageBubble key={message.id} message={message} />
+            ))}
+
+            {/* Sending indicator */}
+            {isSending && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl bg-zinc-200 px-4 py-3 dark:bg-zinc-800">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]"></span>
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]"></span>
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400"></span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scroll anchor */}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Input area */}
+      <div className="border-t border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-black">
+        <form
+          onSubmit={handleSubmit}
+          className="mx-auto flex max-w-2xl items-end gap-3"
+        >
+          <div className="relative flex-1">
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              disabled={isSending}
+              rows={1}
+              className="w-full resize-none rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-600"
+              style={{
+                minHeight: "48px",
+                maxHeight: "200px",
+              }}
+            />
+          </div>
+
+          {/* Send button */}
+          <button
+            type="submit"
+            disabled={!inputValue.trim() || isSending}
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            aria-label="Send message"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
+            </svg>
+          </button>
+        </form>
+
+        {/* Hint text */}
+        <p className="mx-auto mt-2 max-w-2xl text-center text-xs text-zinc-400 dark:text-zinc-500">
+          Press Enter to send, Shift+Enter for new line
+        </p>
+      </div>
+    </div>
+  );
+}
