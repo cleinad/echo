@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.clips import router as clips_router
 from routes.playback import router as playback_router
+from routes.conversations import router as conversations_router
 from config import get_settings
 
 # Initialize app
@@ -26,6 +27,7 @@ app.add_middleware(
 # Register routes
 app.include_router(clips_router, prefix="/api/v1")
 app.include_router(playback_router, prefix="/api/v1")
+app.include_router(conversations_router, prefix="/api/v1")
 
 #
 @app.get("/")

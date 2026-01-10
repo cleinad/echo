@@ -56,3 +56,36 @@ class ErrorResponse(BaseModel):
     detail: str
 
 
+# ============================================================================
+# Conversation Responses
+# ============================================================================
+
+class ConversationResponse(BaseModel):
+    """Single conversation response."""
+    
+    id: str
+    title: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationsListResponse(BaseModel):
+    """List of conversations."""
+    
+    conversations: List[ConversationResponse]
+
+
+class ConversationMessageResponse(BaseModel):
+    """Single message in a conversation."""
+    
+    id: str
+    role: Literal["user", "assistant", "system"]
+    content: str
+    audio_url: Optional[str] = None  # TTS audio for assistant messages (future use)
+    created_at: datetime
+
+
+class MessagesListResponse(BaseModel):
+    """List of messages in a conversation."""
+    
+    messages: List[ConversationMessageResponse]

@@ -48,3 +48,36 @@ class UpdateProgressRequest(BaseModel):
     )
 
 
+# ============================================================================
+# Conversation Requests
+# ============================================================================
+
+class CreateConversationRequest(BaseModel):
+    """Request body for creating a new conversation."""
+    
+    # Title is optional - will be auto-generated from first message if not provided
+    title: Optional[str] = Field(
+        default=None,
+        max_length=200,
+        description="Optional title for the conversation"
+    )
+
+
+class UpdateConversationRequest(BaseModel):
+    """Request body for updating/renaming a conversation."""
+    
+    title: str = Field(
+        min_length=1,
+        max_length=200,
+        description="New title for the conversation"
+    )
+
+
+class SendMessageRequest(BaseModel):
+    """Request body for sending a message in a conversation."""
+    
+    content: str = Field(
+        min_length=1,
+        max_length=10000,
+        description="The message content to send"
+    )
