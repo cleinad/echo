@@ -87,9 +87,10 @@ export function ConversationSidebar({
           <ul className="space-y-1">
             {conversations.map((conv) => (
               <li key={conv.id}>
-                <button
+                {/* Conversation item container - using div instead of button to allow nested delete button */}
+                <div
                   onClick={() => onSelectConversation(conv.id)}
-                  className={`group flex w-full items-start justify-between rounded-lg px-3 py-2.5 text-left transition-colors ${
+                  className={`group flex w-full items-start justify-between rounded-lg px-3 py-2.5 text-left transition-colors cursor-pointer ${
                     currentConversationId === conv.id
                       ? "bg-zinc-200 dark:bg-zinc-800"
                       : "hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50"
@@ -129,7 +130,7 @@ export function ConversationSidebar({
                       />
                     </svg>
                   </button>
-                </button>
+                </div>
               </li>
             ))}
           </ul>
