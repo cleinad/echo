@@ -81,3 +81,8 @@ class SendMessageRequest(BaseModel):
         max_length=10000,
         description="The message content to send"
     )
+    # Mode determines AI response style: "type" uses markdown, "talk" is conversational
+    mode: Literal["type", "talk"] = Field(
+        default="type",
+        description="Response mode: 'type' for formatted markdown, 'talk' for natural conversation"
+    )

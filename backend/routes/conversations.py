@@ -255,11 +255,15 @@ async def send_message(
             detail="Conversation not found"
         )
     
-    # Save user message
+    # Extract mode from request (defaults to "type" for backward compatibility)
+    mode = request.mode
+    
+    # Save user message with mode metadata
     user_msg_result = supabase.table("conversation_messages").insert({
         "conversation_id": conversation_id,
         "role": "user",
         "content": request.content,
+        "metadata": {"mode": mode},
     }).execute()
     
     if not user_msg_result.data:
@@ -278,6 +282,7 @@ async def send_message(
                 user_content=request.content,
                 user_message=user_message,
                 conv_title=conv.data.get("title"),
+                mode=mode,
             ),
             media_type="text/event-stream",
             headers={
@@ -289,7 +294,7 @@ async def send_message(
     
     # Non-streaming mode (original behavior)
     try:
-        ai_response_text = await generate_response(conversation_id, request.content)
+        ai_response_text = await generate_response(conversation_id, request.content, mode=mode)
     except Exception as e:
         print(f"[ERROR] Failed to generate AI response: {e}")
         raise HTTPException(
@@ -297,11 +302,12 @@ async def send_message(
             detail="Failed to generate response. Please try again."
         )
     
-    # Save AI response
+    # Save AI response with mode metadata
     ai_msg_result = supabase.table("conversation_messages").insert({
         "conversation_id": conversation_id,
         "role": "assistant",
         "content": ai_response_text,
+        "metadata": {"mode": mode},
     }).execute()
     
     if not ai_msg_result.data:
@@ -338,6 +344,7 @@ async def _stream_response(
     user_content: str,
     user_message: dict,
     conv_title: str | None,
+    mode: str = "type",
 ) -> AsyncGenerator[str, None]:
     """
     Generate SSE stream for AI response.
@@ -352,6 +359,7 @@ async def _stream_response(
         user_content: The user's message content
         user_message: The saved user message dict
         conv_title: Current conversation title (or None)
+        mode: Response mode - "type" for markdown, "talk" for conversational
     """
     supabase = get_supabase_client()
     
@@ -369,19 +377,20 @@ async def _stream_response(
     full_response = ""
     
     try:
-        # Stream tokens from LLM
-        async for token in generate_response_stream(conversation_id, user_content):
+        # Stream tokens from LLM with appropriate mode
+        async for token in generate_response_stream(conversation_id, user_content, mode=mode):
             full_response += token
             yield sse_event({
                 "type": "token",
                 "content": token,
             })
         
-        # Save complete AI response to database
+        # Save complete AI response to database with mode metadata
         ai_msg_result = supabase.table("conversation_messages").insert({
             "conversation_id": conversation_id,
             "role": "assistant",
             "content": full_response,
+            "metadata": {"mode": mode},
         }).execute()
         
         if not ai_msg_result.data:

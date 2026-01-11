@@ -1,7 +1,7 @@
 """
 Response DTOs for API endpoints.
 """
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 # for outgoing responses (server -> client)
@@ -82,6 +82,8 @@ class ConversationMessageResponse(BaseModel):
     role: Literal["user", "assistant", "system"]
     content: str
     audio_url: Optional[str] = None  # TTS audio for assistant messages (future use)
+    # Metadata stores per-message settings like mode (type/talk)
+    metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ConversationMessageResponse } from "@/lib/api";
+import { ConversationMessageResponse, MessageMode } from "@/lib/api";
 import { MessageBubble } from "@/components/MessageBubble";
 import ReactMarkdown from "react-markdown";
 
@@ -13,6 +13,8 @@ interface ConversationViewProps {
   streamingContent: string;       // Accumulated content from streaming tokens
   error: string | null;
   hasConversation: boolean;
+  messageMode: MessageMode;       // Current mode: "type" for markdown, "talk" for conversational
+  onModeChange: (mode: MessageMode) => void;  // Callback to change mode
   onSendMessage: (content: string) => void;
   onNewConversation: () => void;
   onDismissError: () => void;
@@ -21,6 +23,7 @@ interface ConversationViewProps {
 // Main conversation view component
 // Displays messages and input field for sending new messages
 // Supports real-time streaming display of AI responses
+// Supports "type" mode (markdown) and "talk" mode (conversational)
 export function ConversationView({
   messages,
   loading,
@@ -29,6 +32,8 @@ export function ConversationView({
   streamingContent,
   error,
   hasConversation,
+  messageMode,
+  onModeChange,
   onSendMessage,
   onNewConversation,
   onDismissError,
@@ -139,6 +144,7 @@ export function ConversationView({
             ))}
 
             {/* Streaming AI response - shows tokens as they arrive */}
+            {/* Always renders as markdown (handles any formatting that slips through) */}
             {isStreaming && (
               <div className="flex justify-start">
                 <div className="max-w-[90%] rounded-2xl bg-zinc-200 px-4 py-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
@@ -146,11 +152,9 @@ export function ConversationView({
                     <div className="markdown-content text-sm leading-relaxed">
                       <ReactMarkdown
                         components={{
-                          // Style paragraphs
                           p: ({ children }) => (
                             <p className="my-2 first:mt-0 last:mb-0">{children}</p>
                           ),
-                          // Style headings
                           h1: ({ children }) => (
                             <h1 className="my-3 text-lg font-semibold">{children}</h1>
                           ),
@@ -160,7 +164,6 @@ export function ConversationView({
                           h3: ({ children }) => (
                             <h3 className="my-2 text-sm font-semibold">{children}</h3>
                           ),
-                          // Style lists
                           ul: ({ children }) => (
                             <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>
                           ),
@@ -168,7 +171,6 @@ export function ConversationView({
                             <ol className="my-2 ml-4 list-decimal space-y-1">{children}</ol>
                           ),
                           li: ({ children }) => <li className="my-0">{children}</li>,
-                          // Style code blocks
                           code: ({ className, children }) => {
                             const isInline = !className;
                             return isInline ? (
@@ -184,7 +186,6 @@ export function ConversationView({
                               {children}
                             </pre>
                           ),
-                          // Style links
                           a: ({ href, children }) => (
                             <a
                               href={href}
@@ -195,19 +196,15 @@ export function ConversationView({
                               {children}
                             </a>
                           ),
-                          // Style blockquotes
                           blockquote: ({ children }) => (
                             <blockquote className="my-2 border-l-4 border-zinc-400 pl-4 italic dark:border-zinc-600">
                               {children}
                             </blockquote>
                           ),
-                          // Style horizontal rules
                           hr: () => <hr className="my-4 border-zinc-300 dark:border-zinc-700" />,
-                          // Style strong/bold
                           strong: ({ children }) => (
                             <strong className="font-semibold">{children}</strong>
                           ),
-                          // Style emphasis/italic
                           em: ({ children }) => <em className="italic">{children}</em>,
                         }}
                       >
@@ -255,22 +252,43 @@ export function ConversationView({
       <div className="bg-zinc-50/80 p-4 backdrop-blur-lg dark:bg-black/80">
         <form
           onSubmit={handleSubmit}
-          className="mx-auto flex max-w-4xl items-end gap-3"
+          className="mx-auto flex max-w-4xl items-center gap-3"
         >
-          <div className="relative flex-[2]">
+          {/* Mode toggle - switches between type (markdown) and talk (conversational) */}
+          <button
+            type="button"
+            onClick={() => onModeChange(messageMode === "type" ? "talk" : "type")}
+            className="flex h-12 flex-shrink-0 items-center gap-1.5 rounded-xl border border-zinc-300/50 bg-white/80 px-3 text-sm backdrop-blur-sm transition-all hover:bg-zinc-100/80 dark:border-zinc-700/50 dark:bg-zinc-900/80 dark:hover:bg-zinc-800/80"
+            title={messageMode === "type" ? "Switch to Talk mode" : "Switch to Type mode"}
+          >
+            {/* Icon changes based on mode */}
+            {messageMode === "type" ? (
+              // Keyboard icon for type mode
+              <svg className="h-4 w-4 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            ) : (
+              // Speech bubble icon for talk mode
+              <svg className="h-4 w-4 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            )}
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              {messageMode === "type" ? "Type" : "Talk"}
+            </span>
+          </button>
+
+          {/* Text input area - aligned to same height as buttons */}
+          <div className="relative flex-1">
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
+              placeholder={messageMode === "type" ? "Type a message..." : "Say something..."}
               disabled={isSending || isStreaming}
               rows={1}
-              className="w-full resize-none rounded-xl border border-zinc-300/50 bg-white/80 px-4 py-3 text-sm text-zinc-900 backdrop-blur-sm placeholder-zinc-400 focus:border-zinc-400/50 focus:bg-white focus:outline-none focus:ring-0 disabled:opacity-50 dark:border-zinc-700/50 dark:bg-zinc-900/80 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-600/50 dark:focus:bg-zinc-900"
-              style={{
-                minHeight: "48px",
-                maxHeight: "200px",
-              }}
+              className="flex h-12 w-full resize-none items-center rounded-xl border border-zinc-300/50 bg-white/80 px-4 py-3 text-sm text-zinc-900 backdrop-blur-sm placeholder-zinc-400 focus:border-zinc-400/50 focus:bg-white focus:outline-none focus:ring-0 disabled:opacity-50 dark:border-zinc-700/50 dark:bg-zinc-900/80 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-600/50 dark:focus:bg-zinc-900"
             />
           </div>
 
@@ -297,9 +315,11 @@ export function ConversationView({
           </button>
         </form>
 
-        {/* Hint text */}
+        {/* Hint text - updates based on mode */}
         <p className="mx-auto mt-2 max-w-4xl text-center text-xs text-zinc-400 dark:text-zinc-500">
-          Press Enter to send, Shift+Enter for new line
+          {messageMode === "type" 
+            ? "Press Enter to send, Shift+Enter for new line" 
+            : "Talk mode — responses will be conversational"}
         </p>
       </div>
     </div>

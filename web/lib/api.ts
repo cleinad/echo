@@ -56,11 +56,16 @@ export interface ConversationResponse {
   updated_at: string;
 }
 
+// Message mode type - determines AI response style
+export type MessageMode = "type" | "talk";
+
 export interface ConversationMessageResponse {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   audio_url: string | null;
+  // Metadata stores per-message settings like mode (type/talk)
+  metadata: { mode?: MessageMode } | null;
   created_at: string;
 }
 
@@ -416,7 +421,8 @@ export async function getMessages(
 export async function sendMessage(
   conversationId: string,
   content: string,
-  token: string
+  token: string,
+  mode: MessageMode = "type"
 ): Promise<{ messages: ConversationMessageResponse[] }> {
   const response = await fetch(
     `${API_BASE_URL}/conversations/${conversationId}/messages`,
@@ -426,7 +432,7 @@ export async function sendMessage(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, mode }),
     }
   );
 
@@ -450,14 +456,16 @@ export async function sendMessage(
  * @param conversationId - The ID of the conversation
  * @param content - The message content to send
  * @param token - The authentication token
+ * @param mode - Response mode: "type" for markdown, "talk" for conversational
  * @yields StreamEvent objects: user_message, token, done, or error
  */
 export async function* sendMessageStreaming(
   conversationId: string,
   content: string,
-  token: string
+  token: string,
+  mode: MessageMode = "type"
 ): AsyncGenerator<StreamEvent, void, unknown> {
-  // Make request with stream=true query parameter
+  // Make request with stream=true query parameter and mode
   const response = await fetch(
     `${API_BASE_URL}/conversations/${conversationId}/messages?stream=true`,
     {
@@ -466,7 +474,7 @@ export async function* sendMessageStreaming(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, mode }),
     }
   );
 

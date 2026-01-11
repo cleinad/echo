@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   ConversationResponse,
   ConversationMessageResponse,
+  MessageMode,
   createConversation,
   listConversations,
   getMessages,
@@ -42,6 +43,24 @@ function ConversationPage() {
   // Streaming state - tracks the AI response being generated
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState("");
+
+  // Message mode state - "type" for markdown, "talk" for conversational
+  // Persisted to localStorage so it remembers user's preference
+  const [messageMode, setMessageMode] = useState<MessageMode>("type");
+
+  // Load mode from localStorage on mount
+  useEffect(() => {
+    const savedMode = localStorage.getItem("conversationMode") as MessageMode | null;
+    if (savedMode === "type" || savedMode === "talk") {
+      setMessageMode(savedMode);
+    }
+  }, []);
+
+  // Save mode to localStorage when it changes
+  const handleModeChange = useCallback((newMode: MessageMode) => {
+    setMessageMode(newMode);
+    localStorage.setItem("conversationMode", newMode);
+  }, []);
 
   // Fetch all conversations on mount
   useEffect(() => {
@@ -134,6 +153,7 @@ function ConversationPage() {
   );
 
   // Send a message with streaming AI response
+  // Includes the current mode which determines AI response style
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (!currentConversationId || !content.trim()) return;
@@ -146,11 +166,12 @@ function ConversationPage() {
         const token = await getAccessToken();
         if (!token) return;
 
-        // Use streaming API to get token-by-token response
+        // Use streaming API with current mode for appropriate response style
         const stream = sendMessageStreaming(
           currentConversationId,
           content,
-          token
+          token,
+          messageMode
         );
 
         // Process each event from the stream
@@ -196,7 +217,7 @@ function ConversationPage() {
         setIsSending(false);
       }
     },
-    [currentConversationId, getAccessToken]
+    [currentConversationId, getAccessToken, messageMode]
   );
 
   return (
@@ -229,6 +250,8 @@ function ConversationPage() {
           streamingContent={streamingContent}
           error={error}
           hasConversation={!!currentConversationId}
+          messageMode={messageMode}
+          onModeChange={handleModeChange}
           onSendMessage={handleSendMessage}
           onNewConversation={handleNewConversation}
           onDismissError={() => setError(null)}
