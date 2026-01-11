@@ -15,7 +15,7 @@ Be concise and direct in your responses. Answer questions clearly
 and provide relevant information without unnecessary elaboration."""
 
 # Greeting message for new conversation
-GREETING_MESSAGE = "Hey there! I'm ready to chat. What's on your mind?"
+GREETING_MESSAGE = "Hey, what's on your mind?"
 
 # Maximum number of recent messages to include in context
 MAX_CONTEXT_MESSAGES = 20
