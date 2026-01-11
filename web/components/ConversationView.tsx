@@ -3,11 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { ConversationMessageResponse } from "@/lib/api";
 import { MessageBubble } from "@/components/MessageBubble";
+import ReactMarkdown from "react-markdown";
 
 interface ConversationViewProps {
   messages: ConversationMessageResponse[];
   loading: boolean;
   isSending: boolean;
+  isStreaming: boolean;           // Whether AI is currently streaming a response
+  streamingContent: string;       // Accumulated content from streaming tokens
   error: string | null;
   hasConversation: boolean;
   onSendMessage: (content: string) => void;
@@ -17,10 +20,13 @@ interface ConversationViewProps {
 
 // Main conversation view component
 // Displays messages and input field for sending new messages
+// Supports real-time streaming display of AI responses
 export function ConversationView({
   messages,
   loading,
   isSending,
+  isStreaming,
+  streamingContent,
   error,
   hasConversation,
   onSendMessage,
@@ -31,10 +37,10 @@ export function ConversationView({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or streaming content updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, streamingContent]);
 
   // Focus input when conversation is selected
   useEffect(() => {
@@ -43,10 +49,10 @@ export function ConversationView({
     }
   }, [hasConversation, loading]);
 
-  // Handle form submission
+  // Handle form submission - disabled while sending or streaming
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputValue.trim() && !isSending) {
+    if (inputValue.trim() && !isSending && !isStreaming) {
       onSendMessage(inputValue.trim());
       setInputValue("");
     }
@@ -96,7 +102,7 @@ export function ConversationView({
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
       {/* Error toast */}
       {error && (
         <div className="mx-4 mt-4 flex items-center justify-between rounded-lg bg-red-100 px-4 py-3 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-400">
@@ -116,8 +122,8 @@ export function ConversationView({
         </div>
       )}
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      {/* Messages area - scrollable container with scrollbar on right edge */}
+      <div className="flex-1 min-h-0 overflow-y-auto py-6 pr-0">
         {loading ? (
           <div className="flex items-center justify-center py-8 text-zinc-500">
             Loading messages...
@@ -127,15 +133,109 @@ export function ConversationView({
             No messages yet. Say something!
           </div>
         ) : (
-          <div className="mx-auto max-w-2xl space-y-4">
+          <div className="mx-auto max-w-4xl space-y-4 pl-6 pr-6">
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
 
-            {/* Sending indicator */}
-            {isSending && (
+            {/* Streaming AI response - shows tokens as they arrive */}
+            {isStreaming && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-zinc-200 px-4 py-3 dark:bg-zinc-800">
+                <div className="max-w-[90%] rounded-2xl bg-zinc-200 px-4 py-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100">
+                  {streamingContent ? (
+                    <div className="markdown-content text-sm leading-relaxed">
+                      <ReactMarkdown
+                        components={{
+                          // Style paragraphs
+                          p: ({ children }) => (
+                            <p className="my-2 first:mt-0 last:mb-0">{children}</p>
+                          ),
+                          // Style headings
+                          h1: ({ children }) => (
+                            <h1 className="my-3 text-lg font-semibold">{children}</h1>
+                          ),
+                          h2: ({ children }) => (
+                            <h2 className="my-2 text-base font-semibold">{children}</h2>
+                          ),
+                          h3: ({ children }) => (
+                            <h3 className="my-2 text-sm font-semibold">{children}</h3>
+                          ),
+                          // Style lists
+                          ul: ({ children }) => (
+                            <ul className="my-2 ml-4 list-disc space-y-1">{children}</ul>
+                          ),
+                          ol: ({ children }) => (
+                            <ol className="my-2 ml-4 list-decimal space-y-1">{children}</ol>
+                          ),
+                          li: ({ children }) => <li className="my-0">{children}</li>,
+                          // Style code blocks
+                          code: ({ className, children }) => {
+                            const isInline = !className;
+                            return isInline ? (
+                              <code className="rounded bg-zinc-300/50 px-1 py-0.5 text-xs dark:bg-zinc-700/50">
+                                {children}
+                              </code>
+                            ) : (
+                              <code className={className}>{children}</code>
+                            );
+                          },
+                          pre: ({ children }) => (
+                            <pre className="my-2 overflow-x-auto rounded-lg bg-zinc-300/50 p-3 dark:bg-zinc-700/50">
+                              {children}
+                            </pre>
+                          ),
+                          // Style links
+                          a: ({ href, children }) => (
+                            <a
+                              href={href}
+                              className="text-blue-600 underline hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {children}
+                            </a>
+                          ),
+                          // Style blockquotes
+                          blockquote: ({ children }) => (
+                            <blockquote className="my-2 border-l-4 border-zinc-400 pl-4 italic dark:border-zinc-600">
+                              {children}
+                            </blockquote>
+                          ),
+                          // Style horizontal rules
+                          hr: () => <hr className="my-4 border-zinc-300 dark:border-zinc-700" />,
+                          // Style strong/bold
+                          strong: ({ children }) => (
+                            <strong className="font-semibold">{children}</strong>
+                          ),
+                          // Style emphasis/italic
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                        }}
+                      >
+                        {streamingContent}
+                      </ReactMarkdown>
+                      {/* Blinking cursor to indicate ongoing generation */}
+                      <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-zinc-500 dark:bg-zinc-400" />
+                    </div>
+                  ) : (
+                    // Show dots while waiting for first token
+                    <div className="flex items-center gap-1">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]"></span>
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]"></span>
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400"></span>
+                    </div>
+                  )}
+                  {/* Generating indicator label */}
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Generating...
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Waiting indicator - shown before streaming starts */}
+            {isSending && !isStreaming && (
+              <div className="flex justify-start">
+                <div className="max-w-[90%] rounded-2xl bg-zinc-200 px-4 py-3 dark:bg-zinc-800">
                   <div className="flex items-center gap-1">
                     <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s]"></span>
                     <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s]"></span>
@@ -151,22 +251,22 @@ export function ConversationView({
         )}
       </div>
 
-      {/* Input area */}
-      <div className="border-t border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-black">
+      {/* Input area - glassmorphic effect, no border */}
+      <div className="bg-zinc-50/80 p-4 backdrop-blur-lg dark:bg-black/80">
         <form
           onSubmit={handleSubmit}
-          className="mx-auto flex max-w-2xl items-end gap-3"
+          className="mx-auto flex max-w-4xl items-end gap-3"
         >
-          <div className="relative flex-1">
+          <div className="relative flex-[2]">
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type a message..."
-              disabled={isSending}
+              disabled={isSending || isStreaming}
               rows={1}
-              className="w-full resize-none rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-400 focus:outline-none focus:ring-0 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-600"
+              className="w-full resize-none rounded-xl border border-zinc-300/50 bg-white/80 px-4 py-3 text-sm text-zinc-900 backdrop-blur-sm placeholder-zinc-400 focus:border-zinc-400/50 focus:bg-white focus:outline-none focus:ring-0 disabled:opacity-50 dark:border-zinc-700/50 dark:bg-zinc-900/80 dark:text-zinc-100 dark:placeholder-zinc-500 dark:focus:border-zinc-600/50 dark:focus:bg-zinc-900"
               style={{
                 minHeight: "48px",
                 maxHeight: "200px",
@@ -174,11 +274,11 @@ export function ConversationView({
             />
           </div>
 
-          {/* Send button */}
+          {/* Send button - disabled while sending or streaming */}
           <button
             type="submit"
-            disabled={!inputValue.trim() || isSending}
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-black text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+            disabled={!inputValue.trim() || isSending || isStreaming}
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-black/80 text-white backdrop-blur-sm transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white/80 dark:text-black dark:hover:bg-white/90"
             aria-label="Send message"
           >
             <svg
@@ -198,7 +298,7 @@ export function ConversationView({
         </form>
 
         {/* Hint text */}
-        <p className="mx-auto mt-2 max-w-2xl text-center text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="mx-auto mt-2 max-w-4xl text-center text-xs text-zinc-400 dark:text-zinc-500">
           Press Enter to send, Shift+Enter for new line
         </p>
       </div>

@@ -12,7 +12,7 @@ import {
   createConversation,
   listConversations,
   getMessages,
-  sendMessage,
+  sendMessageStreaming,
   deleteConversation,
 } from "@/lib/api";
 
@@ -38,6 +38,10 @@ function ConversationPage() {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Streaming state - tracks the AI response being generated
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState("");
 
   // Fetch all conversations on mount
   useEffect(() => {
@@ -129,26 +133,56 @@ function ConversationPage() {
     [getAccessToken, currentConversationId]
   );
 
-  // Send a message
+  // Send a message with streaming AI response
   const handleSendMessage = useCallback(
     async (content: string) => {
       if (!currentConversationId || !content.trim()) return;
 
       setIsSending(true);
       setError(null);
+      setStreamingContent("");
 
       try {
         const token = await getAccessToken();
         if (!token) return;
 
-        const response = await sendMessage(
+        // Use streaming API to get token-by-token response
+        const stream = sendMessageStreaming(
           currentConversationId,
           content,
           token
         );
 
-        // Add both user message and AI response to the messages
-        setMessages((prev) => [...prev, ...response.messages]);
+        // Process each event from the stream
+        for await (const event of stream) {
+          switch (event.type) {
+            case "user_message":
+              // Add user message to the list immediately
+              setMessages((prev) => [...prev, event.message]);
+              // Start showing the streaming indicator
+              setIsStreaming(true);
+              break;
+
+            case "token":
+              // Accumulate tokens for the streaming display
+              setStreamingContent((prev) => prev + event.content);
+              break;
+
+            case "done":
+              // Streaming complete - add the final AI message
+              setIsStreaming(false);
+              setStreamingContent("");
+              setMessages((prev) => [...prev, event.message]);
+              break;
+
+            case "error":
+              // Handle streaming error
+              setIsStreaming(false);
+              setStreamingContent("");
+              setError(event.message);
+              break;
+          }
+        }
 
         // Update conversation in sidebar (it may have a new title now)
         const updatedConversations = await listConversations(token);
@@ -156,6 +190,8 @@ function ConversationPage() {
       } catch (err) {
         console.error("Failed to send message:", err);
         setError("Failed to send message. Please try again.");
+        setIsStreaming(false);
+        setStreamingContent("");
       } finally {
         setIsSending(false);
       }
@@ -164,7 +200,7 @@ function ConversationPage() {
   );
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-black" data-conversation-page>
       {/* Sidebar */}
       <ConversationSidebar
         conversations={conversations}
@@ -178,7 +214,7 @@ function ConversationPage() {
       />
 
       {/* Main content area */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Header */}
         <ConversationHeader
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
@@ -189,6 +225,8 @@ function ConversationPage() {
           messages={messages}
           loading={loadingMessages}
           isSending={isSending}
+          isStreaming={isStreaming}
+          streamingContent={streamingContent}
           error={error}
           hasConversation={!!currentConversationId}
           onSendMessage={handleSendMessage}
@@ -196,6 +234,32 @@ function ConversationPage() {
           onDismissError={() => setError(null)}
         />
       </div>
+      <style jsx global>{`
+        [data-conversation-page] ::-webkit-scrollbar {
+          width: 10px;
+          height: 10px;
+        }
+
+        [data-conversation-page] ::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        [data-conversation-page] ::-webkit-scrollbar-thumb {
+          background-color: #2f2f2f;
+          border-radius: 999px;
+          border: 3px solid transparent;
+          background-clip: content-box;
+        }
+
+        [data-conversation-page] ::-webkit-scrollbar-thumb:hover {
+          background-color: #3a3a3a;
+        }
+
+        [data-conversation-page] * {
+          scrollbar-width: thin;
+          scrollbar-color: #2f2f2f transparent;
+        }
+      `}</style>
     </div>
   );
 }
